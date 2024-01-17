@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  labels:
+    service: backend
+  name: backend-deployment
+
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      service: backend
+  strategy: 
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        service: backend
+    spec:
+      containers:
+      - name: backend-pod
+        env:
+          - name: FLASK_ENV
+            value: development
+          - name: POSTGRES_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: postgres-credentials
+                key: password
+          - name: DATABASE_URL
+            value: postgresql://postgres:$(POSTGRES_PASSWORD)@db-service:5432/guests_db
+        ports:
+        - containerPort: 5000
+        image: backend
+        imagePullPolicy: Never
+
+      restartPolicy: Always
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+      service: backend
+  name: backend-service
+spec:
+  type: LoadBalancer
+  ports:
+    - name: "5000"
+      port: 8000
+      targetPort: 5000
+  selector:
+    service: backend
+
+  
